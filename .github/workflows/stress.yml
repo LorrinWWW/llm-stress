@@ -1,0 +1,60 @@
+name: Stress Test
+
+# Heavyweight, manual-only stress runs. Each scenario script under
+# llm_stress/scripts/ owns one server configuration end to end (it boots a
+# server via --launch-cmd, drives a workload, and writes events.jsonl +
+# summary.txt). These need real GPUs/models and the target inference server
+# (e.g. tokenspeed) already installed, so they run on a self-hosted runner —
+# set the `runner` input to a label your runner advertises.
+
+on:
+  workflow_dispatch:
+    inputs:
+      scenario:
+        description: "Scenario script (without path/extension)"
+        required: true
+        type: choice
+        default: kimi-k2.5-nvfp4-reality-mix
+        options:
+          - kimi-k2.5-nvfp4-reality-mix
+          - gpt-oss-120b-eagle3-hang-repro
+      runner:
+        description: "Runner label (self-hosted with the right GPUs + server installed)"
+        required: true
+        default: self-hosted
+      duration_s:
+        description: "Soak duration in seconds (DURATION_S)"
+        required: false
+        default: "120"
+
+jobs:
+  stress:
+    runs-on: ${{ inputs.runner }}
+    steps:
+      - name: Checkout llm-stress
+        uses: actions/checkout@v4
+      - name: Install harness
+        run: pip install -e ".[schema]"
+      - name: Run scenario
+        env:
+          OUT_DIR: ${{ github.workspace }}/stress-out
+          DURATION_S: ${{ inputs.duration_s }}
+        run: bash llm_stress/scripts/${{ inputs.scenario }}.sh
+      - name: Publish summary
+        if: always()
+        run: |
+          if [ -f "$GITHUB_WORKSPACE/stress-out/summary.txt" ]; then
+            {
+              echo '## Stress summary — `${{ inputs.scenario }}` @ `${{ inputs.ref }}`'
+              echo '```'
+              cat "$GITHUB_WORKSPACE/stress-out/summary.txt"
+              echo '```'
+            } >> "$GITHUB_STEP_SUMMARY"
+          fi
+      - name: Upload artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: stress-out-${{ inputs.scenario }}
+          path: stress-out/
+          if-no-files-found: warn

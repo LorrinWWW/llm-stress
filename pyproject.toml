@@ -1,0 +1,35 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "llm-stress"
+version = "0.1.0"
+description = "Traffic-simulation / stress harness for OpenAI-compatible LLM inference servers"
+readme = "README.md"
+requires-python = ">=3.9"
+license = { text = "Apache-2.0" }
+authors = [{ name = "Jue Wang" }]
+keywords = ["llm", "inference", "stress-test", "load-test", "benchmark", "tokenspeed"]
+dependencies = ["aiohttp>=3.8"]
+
+[project.optional-dependencies]
+schema = ["jsonschema>=4.0"]
+dev = ["ruff>=0.4", "jsonschema>=4.0"]
+
+[project.urls]
+Homepage = "https://github.com/LorrinWWW/llm-stress"
+Issues = "https://github.com/LorrinWWW/llm-stress/issues"
+
+[project.scripts]
+llm-stress = "llm_stress.__main__:main"
+
+[tool.setuptools.packages.find]
+include = ["llm_stress*"]
+
+[tool.setuptools.package-data]
+llm_stress = ["scripts/*.sh"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py39"
